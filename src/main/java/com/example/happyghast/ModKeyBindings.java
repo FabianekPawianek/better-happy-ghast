@@ -12,23 +12,31 @@ import org.lwjgl.glfw.GLFW;
 
 public class ModKeyBindings {
 
-    private static final String CATEGORY = "Better Happy Ghast Lite";
+    private static final Category CATEGORY = Category.create(Identifier.of(HappyGhastParkMod.MOD_ID, "controls"));
     private static KeyBinding sprintKey;
     private static boolean wasSprinting = false;
 
     public static void register() {
-        Category category = new Category(Identifier.of(HappyGhastParkMod.MOD_ID, "controls"));
         sprintKey = KeyBindingHelper.registerKeyBinding(
-            new KeyBinding("key.betterhappyghast.sprint", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_CONTROL, category)
+            new KeyBinding("key.happyghastpark.sprint", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_CONTROL, CATEGORY)
         );
 
         ClientTickEvents.END_CLIENT_TICK.register(ModKeyBindings::onClientTick);
     }
 
     private static void onClientTick(MinecraftClient client) {
-        if (sprintKey == null) return;
+      if (client == null || client.player == null) {
+            wasSprinting = false;
+            return;
+        }
+        boolean keyBindingDown = sprintKey != null && (sprintKey.isPressed() || sprintKey.wasPressed());
+        boolean inputSprinting = false;
+        if (client.player.input != null && client.player.input.playerInput != null) {
+            inputSprinting = client.player.input.playerInput.sprint();
+          }
 
-        boolean isSprintingNow = sprintKey.isPressed();
+        boolean isSprintingNow = keyBindingDown || inputSprinting;
+
         if (isSprintingNow != wasSprinting) {
             ClientPlayNetworking.send(new GhastSprintPayload(isSprintingNow));
             wasSprinting = isSprintingNow;
